@@ -114,19 +114,34 @@ export function TechStackEditor({ id, data }: TechStackEditorProps) {
             : globalValue;
     };
 
-    const handleOverrideChange = (field: string, value: any) => {
+    const handleOverrideChange = (field: string | Record<string, any>, value?: any) => {
         if (!focusedIcon) return;
 
         const currentOverrides = data.iconOverrides || {};
-        const iconOverride = currentOverrides[focusedIcon] || {};
+        const iconOverride = { ...(currentOverrides[focusedIcon] || {}) };
 
-        const newOverrides = {
-            ...currentOverrides,
-            [focusedIcon]: {
-                ...iconOverride,
-                [field]: value
+        if (typeof field === 'string') {
+            if (value === undefined) {
+                delete iconOverride[field];
+            } else {
+                iconOverride[field] = value;
             }
-        };
+        } else {
+            Object.entries(field).forEach(([k, v]) => {
+                if (v === undefined) {
+                    delete iconOverride[k];
+                } else {
+                    iconOverride[k] = v;
+                }
+            });
+        }
+
+        const newOverrides = { ...currentOverrides };
+        if (Object.keys(iconOverride).length === 0) {
+            delete newOverrides[focusedIcon];
+        } else {
+            newOverrides[focusedIcon] = iconOverride;
+        }
 
         handleChange('iconOverrides', newOverrides);
     };
@@ -151,22 +166,26 @@ export function TechStackEditor({ id, data }: TechStackEditorProps) {
     const currentGradientAngle = focusedIcon ? getValue(focusedIcon, 'gradientAngle', data.gradientAngle) : data.gradientAngle;
 
     const handleAddMiddle = () => {
+        const fields = { gradientMiddle: '#888888', gradientMiddlePos: 50 };
         if (focusedIcon) {
-            handleOverrideChange('gradientMiddle', '#888888');
-            handleOverrideChange('gradientMiddlePos', 50);
+            handleOverrideChange(fields);
         } else {
-            handleChange('gradientMiddle', '#888888');
-            handleChange('gradientMiddlePos', 50);
+            updateBlock(id, fields);
         }
     };
 
     const handleRemoveMiddle = () => {
         if (focusedIcon) {
-            handleOverrideChange('gradientMiddle', undefined);
-            handleOverrideChange('gradientMiddlePos', undefined);
+            // Setting to undefined clears the override and forces fallback to global
+            handleOverrideChange({
+                gradientMiddle: undefined,
+                gradientMiddlePos: undefined
+            });
         } else {
-            handleChange('gradientMiddle', undefined);
-            handleChange('gradientMiddlePos', undefined);
+            updateBlock(id, {
+                gradientMiddle: undefined,
+                gradientMiddlePos: undefined
+            });
         }
     };
 
